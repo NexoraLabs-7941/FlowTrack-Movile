@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # flowtrack_mobile
 
 A new Flutter project.
@@ -15,3 +16,6 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# FlowTrack-Movile
+>>>>>>> 883d8e1d32b09f2d6e799265fae0632ac1c75542
