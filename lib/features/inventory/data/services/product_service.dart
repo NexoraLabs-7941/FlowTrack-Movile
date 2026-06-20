@@ -5,21 +5,41 @@ import '../models/product_model.dart';
 import '../../../../core/storage/token_storage.dart';
 
 class ProductService {
-  static const baseUrl = "https://test-ru6s.onrender.com";
+  final String baseUrl = "https://test-ru6s.onrender.com";
 
-  Future<List<Product>> getProducts() async {
+  Future<Map<String, String>> _headers() async {
     final token = await TokenStorage.getToken();
 
-    final response = await http.get(
+    return {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    };
+  }
+
+
+  Future<List<Product>> getProducts() async {
+    final res = await http.get(
       Uri.parse("$baseUrl/api/v1/products"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
+      headers: await _headers(),
     );
 
-    final List data = jsonDecode(response.body);
+    final List data = jsonDecode(res.body);
 
     return data.map((e) => Product.fromJson(e)).toList();
+  }
+
+
+  Future<Product> createProduct(Map<String, dynamic> body) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/api/v1/products"),
+      headers: await _headers(),
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode != 201 && res.statusCode != 200) {
+      throw Exception("Error creando producto: ${res.body}");
+    }
+
+    return Product.fromJson(jsonDecode(res.body));
   }
 }
