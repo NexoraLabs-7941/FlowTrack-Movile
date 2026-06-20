@@ -6,7 +6,7 @@ import '../../widgets/navigation/app_shell.dart';
 import '../../../features/auth/presentation/login_page.dart';
 import '../../../features/auth/presentation/register_page.dart';
 import '../../../features/dashboard/presentation/dashboard_page.dart';
-import '../../../features/inventory/presentation/inventory_page.dart';
+import '../../../features/inventory/presentation/pages/inventory_page.dart';
 import '../../../features/suppliers/presentation/suppliers_page.dart';
 import '../../../features/sales/presentation/sales_page.dart';
 import '../../../features/reports/presentation/reports_page.dart';
