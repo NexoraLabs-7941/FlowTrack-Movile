@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/services/dashboard_service.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -46,101 +47,182 @@ class _DashboardPageState extends State<DashboardPage> {
         loading = false;
       });
     } catch (e) {
-      debugPrint(" Dashboard error: $e");
+      debugPrint("Dashboard error: $e");
 
       if (!mounted) return;
 
-      setState(() {
-        loading = false; 
-      });
+      setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
+
+      appBar: AppBar(
+        title: const Text("Dashboard"),
+        centerTitle: false,
+        backgroundColor: Colors.orange,
+      ),
+
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: load,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
+              child: ListView(
+                padding: const EdgeInsets.all(12),
+                children: [
 
-                    const SizedBox(height: 10),
+                  _statsGrid(),
 
-                    _card("Productos en inventario", "$products"),
-                    _card("Ingresos del mes", "S/. ${income.toStringAsFixed(2)}"),
-                    _card("Ventas realizadas", "$sales"),
-                    _card("Productos con alertas", "$alerts"),
+                  const SizedBox(height: 20),
 
-                    const SizedBox(height: 10),
+                  _chart(),
 
+                  const SizedBox(height: 20),
 
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        "Productos más vendidos",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  _sectionTitle("Productos más vendidos"),
 
-                    ...topProducts.map((p) {
-                      return ListTile(
-                        leading: const Icon(Icons.bar_chart),
+                  ...topProducts.map((p) {
+                    return Card(
+                      elevation: 1,
+                      child: ListTile(
+                        leading: const Icon(Icons.local_offer),
                         title: Text(p["name"] ?? ""),
                         trailing: Text("${p["value"] ?? 0}"),
-                      );
-                    }).toList(),
-
-                    const SizedBox(height: 10),
-
-                    // 🔔 NOTIFICATIONS
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        "Notificaciones",
-                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
+                    );
+                  }),
 
-                    ...notifications.map((n) {
-                      return ListTile(
+                  const SizedBox(height: 10),
+
+
+                  _sectionTitle("Notificaciones"),
+
+                  ...notifications.map((n) {
+                    return Card(
+                      color: Colors.orange.shade50,
+                      child: ListTile(
                         leading: const Icon(Icons.notifications),
                         title: Text(n["title"] ?? ""),
                         subtitle: Text(n["message"] ?? ""),
-                      );
-                    }).toList(),
+                      ),
+                    );
+                  }),
 
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  const SizedBox(height: 30),
+                ],
               ),
             ),
     );
   }
 
-  Widget _card(String title, String value) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade100,
-        borderRadius: BorderRadius.circular(12),
+
+  Widget _statsGrid() {
+    return GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.6,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _statCard("Productos", products.toString(), Icons.inventory),
+        _statCard("Ingresos", "S/. ${income.toStringAsFixed(2)}", Icons.attach_money),
+        _statCard("Ventas", sales.toString(), Icons.shopping_cart),
+        _statCard("Alertas", alerts.toString(), Icons.warning),
+      ],
+    );
+  }
+
+
+  Widget _statCard(String title, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text(title)),
+          Icon(icon, color: Colors.orange),
+          const Spacer(),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(color: Colors.grey.shade600),
           ),
         ],
       ),
     );
   }
+
+
+  Widget _chart() {
+    final data = topProducts.map((e) {
+      return SalesData(
+        e["name"] ?? "",
+        (e["value"] ?? 0).toDouble(),
+      );
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: SfCartesianChart(
+        title: ChartTitle(text: "Ventas"),
+        primaryXAxis: CategoryAxis(),
+        series: <CartesianSeries>[
+          LineSeries<SalesData, String>(
+            dataSource: data,
+            xValueMapper: (d, _) => d.name,
+            yValueMapper: (d, _) => d.value,
+            color: Colors.orange,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+
+class SalesData {
+  final String name;
+  final double value;
+
+  SalesData(this.name, this.value);
 }

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../data/models/product_model.dart';
 import '../../data/services/product_service.dart';
-import '../../presentation/widgets/product_table.dart';
 import '../../../inventory/data/services/category_service.dart';
 import '../../presentation/widgets/kit_modal.dart';
 import '../../data/models/kit_model.dart';
 import '../../data/services/kit_service.dart';
 import '../../presentation/widgets/product_modal.dart';
+import '../../presentation/widgets/category_modal.dart';
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
 
@@ -53,11 +53,15 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF4F6FA),
 
       appBar: AppBar(
         backgroundColor: Colors.orange,
-        title: const Text("Inventario"),
+        elevation: 0,
+        title: const Text(
+          "Inventario",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
 
       body: loading
@@ -68,98 +72,147 @@ class _InventoryPageState extends State<InventoryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  const Text("Productos",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  const Text(
+                    "Gestión de Inventario",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
 
                   const SizedBox(height: 12),
 
+
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
 
-                      _btn("+ Categoría", Colors.blue, () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => const CategoryModal(),
-                        ).then((_) => refresh());
-                      }),
+                      FilledButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const CategoryModal(),
+                          ).then((_) => refresh());
+                        },
+                        icon: const Icon(Icons.category),
+                        label: const Text("Categoría"),
+                      ),
 
-                      _btn("+ Kit", Colors.purple, () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => const KitModal(),
-                        ).then((_) => refresh());
-                      }),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                        ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => const KitModal(),
+                          ).then((_) => refresh());
+                        },
+                        icon: const Icon(Icons.inventory_2),
+                        label: const Text("Kit"),
+                      ),
 
-                      _btn("+ Producto", Colors.green, () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => ProductModal(onSaved: refresh),
-                        );
-                      }),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => ProductModal(onSaved: refresh),
+                          );
+                        },
+                        icon: const Icon(Icons.add_box),
+                        label: const Text("Producto"),
+                      ),
 
-                      _btn("+ Ingresar Reposición", Colors.orange, () {}),
-
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                        ),
+                        onPressed: () {},
+                        icon: const Icon(Icons.sync),
+                        label: const Text("Reposición"),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // PRODUCTS
+
+                  _sectionTitle("Productos"),
+
+                  const SizedBox(height: 10),
+
                   ...products.map((p) {
                     final lowStock = p.minStock <= 5;
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+                    return Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(p.name),
-                          Text("S/. ${p.unitPrice}"),
-                          Text("${p.minStock}"),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: lowStock ? Colors.red : Colors.green,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              lowStock ? "BAJO" : "NORMAL",
-                              style: const TextStyle(color: Colors.white),
-                            ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.orange.shade100,
+                          child: const Icon(Icons.inventory),
+                        ),
+                        title: Text(
+                          p.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
+                        subtitle: Text("Precio: S/. ${p.unitPrice}"),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: lowStock ? Colors.red : Colors.green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            lowStock ? "BAJO" : "OK",
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ),
                     );
                   }),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25),
 
-                  const Text("Kits",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  _sectionTitle("Kits"),
 
                   const SizedBox(height: 10),
 
                   ...kits.map((k) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(k.name),
-                          Text("S/. ${k.totalPrice}"),
-                        ],
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.inventory_2,
+                          color: Colors.purple,
+                        ),
+                        title: Text(
+                          k.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        trailing: Text(
+                          "S/. ${k.totalPrice}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple,
+                          ),
+                        ),
                       ),
                     );
                   }),
@@ -169,81 +222,13 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  Widget _btn(String text, Color color, VoidCallback onTap) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: color),
-      onPressed: onTap,
-      child: Text(text),
-    );
-  }
-}
-class CategoryModal extends StatefulWidget {
-  const CategoryModal({super.key});
-
-  @override
-  State<CategoryModal> createState() => _CategoryModalState();
-}
-
-class _CategoryModalState extends State<CategoryModal> {
-  final nameCtrl = TextEditingController();
-  final descCtrl = TextEditingController();
-
-  final service = CategoryService();
-
-  bool loading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("Nueva categoría"),
-
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-
-          TextField(
-            controller: nameCtrl,
-            decoration: const InputDecoration(
-              labelText: "Nombre",
-              hintText: "Ej: Lácteos",
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          TextField(
-            controller: descCtrl,
-            decoration: const InputDecoration(
-              labelText: "Descripción",
-            ),
-          ),
-        ],
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
       ),
-
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancelar"),
-        ),
-
-        ElevatedButton(
-          onPressed: loading
-              ? null
-              : () async {
-                  setState(() => loading = true);
-
-                  await service.createCategory(
-                    nameCtrl.text,
-                    descCtrl.text,
-                  );
-
-                  setState(() => loading = false);
-
-                  Navigator.pop(context);
-                },
-          child: const Text("Guardar"),
-        ),
-      ],
     );
   }
 }
