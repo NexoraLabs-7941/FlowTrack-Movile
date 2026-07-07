@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/product_model.dart';
 import '../../data/services/batch_service.dart';
-
+import 'package:go_router/go_router.dart';
 
 
 class RestockModal extends StatefulWidget {
@@ -346,8 +346,13 @@ class _RestockModalState extends State<RestockModal> {
 
                   OutlinedButton.icon(
 
+                    onPressed: () {
 
-                    onPressed:(){},
+                      Navigator.pop(context);
+
+                      context.push('/inventory/yolo');
+
+                    },
 
 
                     icon:
@@ -360,7 +365,6 @@ class _RestockModalState extends State<RestockModal> {
                     const Text(
                       "Usar YOLO",
                     ),
-
 
                   )
 

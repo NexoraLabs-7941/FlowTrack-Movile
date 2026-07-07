@@ -12,6 +12,7 @@ import '../../../features/sales/presentation/sales_page.dart';
 import '../../../features/reports/presentation/reports_page.dart';
 import '../../../features/yolo/presentation/yolo_page.dart';
 import '../../../features/settings/presentation/settings_page.dart';
+import '../../../features/inventory/presentation/pages/yolo_inventory_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -74,7 +75,10 @@ final GoRouter appRouter = GoRouter(
           path: '/inventory',
           builder: (c, s) => const InventoryPage(),
         ),
-
+        GoRoute(
+          path: '/inventory/yolo',
+          builder: (c, s) => const YoloInventoryPage(),
+        ),
         GoRoute(
           path: '/suppliers',
           builder: (c, s) => const SuppliersPage(),
