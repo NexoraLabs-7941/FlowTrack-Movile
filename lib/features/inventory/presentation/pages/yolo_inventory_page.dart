@@ -1,5 +1,5 @@
 
-
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -39,23 +39,19 @@ final YoloService service =
 YoloService();
 
 
-
 String? streamUrl;
 
+XFile? imagenSeleccionada;
 
+Uint8List? imagenBytes;
 
 bool loading=false;
 
-
 bool detectando=false;
-
-
 
 int cantidadDetectada=0;
 
-
 int cantidadValidada=0;
-
 
 
 DateTime? fechaRecepcion;
@@ -152,51 +148,45 @@ Text(
 
 Future<void> subirImagen() async{
 
-
-final picker =
-ImagePicker();
-
+final picker = ImagePicker();
 
 
 final image =
 await picker.pickImage(
-
-source:
-ImageSource.gallery
-
+source: ImageSource.gallery
 );
-
 
 
 if(image==null)
 return;
 
 
-
-try{
+final bytes =
+await image.readAsBytes();
 
 
 setState((){
+
+imagenSeleccionada = image;
+
+imagenBytes = bytes;
 
 detectando=true;
 
 });
 
 
+try{
+
 
 final result =
 await service.detectImage(
-
 image
-
 );
 
 
 
-// DEBUG
-
 print(result);
-print(result.runtimeType);
 
 
 
@@ -229,7 +219,6 @@ detectando=false;
 }catch(e){
 
 
-
 if(!mounted)
 return;
 
@@ -258,8 +247,8 @@ Text(
 );
 
 
-}
 
+}
 
 
 }
@@ -597,12 +586,47 @@ BorderRadius.circular(15)
 
 child:
 
-
-streamUrl==null
-
+streamUrl != null
 
 ?
 
+EdgeCameraView(
+url: streamUrl!
+)
+
+
+:
+
+imagenSeleccionada != null
+
+?
+
+ClipRRect(
+
+borderRadius:
+BorderRadius.circular(15),
+
+child:
+
+Image.memory(
+
+imagenBytes!,
+
+width:
+double.infinity,
+
+height:
+230,
+
+fit:
+BoxFit.cover,
+
+),
+
+)
+
+
+:
 
 const Center(
 
@@ -613,20 +637,7 @@ Text(
 
 )
 
-)
-
-
-
-:
-
-
-EdgeCameraView(
-
-url:
-streamUrl!
-
 ),
-
 
 
 ),
