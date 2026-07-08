@@ -1,837 +1,1129 @@
+
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../data/services/yolo_service.dart';
+import '../widgets/edge_camera_view.dart';
+
+
 
 class YoloInventoryPage extends StatefulWidget {
-  const YoloInventoryPage({super.key});
+
+  const YoloInventoryPage({
+    super.key
+  });
+
 
   @override
-  State<YoloInventoryPage> createState() =>
-      _YoloInventoryPageState();
+  State<YoloInventoryPage> createState()
+      => _YoloInventoryPageState();
+
 }
 
 
-class _YoloInventoryPageState 
-    extends State<YoloInventoryPage> {
 
+class _YoloInventoryPageState
+extends State<YoloInventoryPage>{
 
-  final loteCtrl =
-      TextEditingController(text: "L-01");
 
 
-  DateTime? fechaRecepcion;
-  DateTime? fechaVencimiento;
+final loteCtrl =
+TextEditingController(
+  text:"L-01"
+);
 
 
 
-  int cantidadValidada = 3;
+final YoloService service =
+YoloService();
 
 
-  final int stockActual = 11;
 
-  final int cantidadDetectada = 3;
+String? streamUrl;
 
 
 
-  Future<void> selectDate(
-      bool recepcion
-  ) async {
+bool loading=false;
 
 
-    final date =
-        await showDatePicker(
+bool detectando=false;
 
-      context: context,
 
-      firstDate:
-          DateTime(2025),
 
-      lastDate:
-          DateTime(2030),
+int cantidadDetectada=0;
 
-      initialDate:
-          DateTime.now(),
 
-    );
+int cantidadValidada=0;
 
 
-    if(date == null) return;
 
+DateTime? fechaRecepcion;
 
-    setState((){
+DateTime? fechaVencimiento;
 
 
-      if(recepcion){
 
-        fechaRecepcion = date;
 
-      }else{
 
-        fechaVencimiento = date;
+// ==========================
+// ACTIVAR CAMARA EDGE
+// ==========================
 
-      }
+Future<void> activarCamara() async{
 
 
-    });
+try{
 
 
-  }
+setState((){
 
+loading=true;
 
+});
 
 
 
-  String formatDate(DateTime? date){
+final url =
+await service.startCamera();
 
-    if(date == null){
 
-      return "dd/mm/aaaa";
 
-    }
+if(!mounted)
+return;
 
 
-    return
-      "${date.day}/${date.month}/${date.year}";
 
-  }
+setState((){
 
+streamUrl=url;
 
+loading=false;
 
+});
 
 
-  @override
-  Widget build(BuildContext context) {
 
+}catch(e){
 
-    return Scaffold(
 
+if(!mounted)
+return;
 
-      appBar: AppBar(
 
-        title:
-        const Text(
-          "Inventario YOLO",
-          style:
-          TextStyle(
-            fontWeight: FontWeight.bold
-          ),
-        ),
 
-        backgroundColor:
-        Colors.orange,
+setState((){
 
-      ),
+loading=false;
 
+});
 
 
-      body:
 
+ScaffoldMessenger.of(context)
+.showSnackBar(
 
-      SingleChildScrollView(
+SnackBar(
 
+content:
+Text(
+"Error cámara: $e"
+)
 
-        padding:
-        const EdgeInsets.all(16),
+)
 
+);
 
-        child:
-        Column(
 
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+}
 
 
-          children:[
 
+}
 
 
-            // DATOS GENERALES
 
-            Row(
 
-              children:[
 
 
-                Expanded(
+// ==========================
+// SUBIR IMAGEN
+// ==========================
 
-                  child:
-                  TextField(
+Future<void> subirImagen() async{
 
-                    controller:
-                    loteCtrl,
 
-                    decoration:
-                    const InputDecoration(
+final picker =
+ImagePicker();
 
-                      labelText:
-                      "Lote",
 
-                      border:
-                      OutlineInputBorder(),
 
-                    ),
+final image =
+await picker.pickImage(
 
-                  ),
+source:
+ImageSource.gallery
 
-                ),
+);
 
 
-              ],
 
+if(image==null)
+return;
 
-            ),
 
 
+try{
 
-            const SizedBox(
-              height:12,
-            ),
 
+setState((){
 
+detectando=true;
 
+});
 
-            Row(
 
-              children:[
 
+final result =
+await service.detectImage(
 
-                Expanded(
+image
 
-                  child:
-                  InkWell(
+);
 
-                    onTap:(){
 
-                      selectDate(true);
 
-                    },
+// DEBUG
 
+print(result);
+print(result.runtimeType);
 
-                    child:
-                    InputDecorator(
 
-                      decoration:
-                      const InputDecoration(
 
-                        labelText:
-                        "Fecha recepción",
+if(!mounted)
+return;
 
-                        border:
-                        OutlineInputBorder(),
 
-                      ),
 
+setState((){
 
-                      child:
-                      Text(
-                        formatDate(
-                          fechaRecepcion
-                        ),
-                      ),
 
-                    ),
+cantidadDetectada =
+result["total_count"] ?? 0;
 
-                  ),
 
-                ),
 
+cantidadValidada =
+cantidadDetectada;
 
 
 
-                const SizedBox(
-                  width:10,
-                ),
+detectando=false;
 
 
 
+});
 
-                Expanded(
 
-                  child:
-                  InkWell(
 
-                    onTap:(){
+}catch(e){
 
-                      selectDate(false);
 
-                    },
 
+if(!mounted)
+return;
 
-                    child:
-                    InputDecorator(
 
-                      decoration:
-                      const InputDecoration(
 
-                        labelText:
-                        "Fecha vencimiento",
+setState((){
 
-                        border:
-                        OutlineInputBorder(),
+detectando=false;
 
-                      ),
+});
 
 
-                      child:
-                      Text(
-                        formatDate(
-                          fechaVencimiento
-                        ),
-                      ),
 
-                    ),
+ScaffoldMessenger.of(context)
+.showSnackBar(
 
-                  ),
+SnackBar(
 
-                ),
+content:
+Text(
+"Error detección: $e"
+)
 
+)
 
-              ],
+);
 
-            ),
 
+}
 
 
 
-            const SizedBox(
-              height:20,
-            ),
+}
 
 
 
 
 
 
-            // AREA CAMARA
 
+// ==========================
+// FECHAS
+// ==========================
 
-            Container(
+Future<void> selectDate(
+bool recepcion
+) async{
 
-              height:230,
 
+final date =
+await showDatePicker(
 
-              width:
-              double.infinity,
+context:context,
 
 
-              decoration:
-              BoxDecoration(
+firstDate:
+DateTime(2025),
 
-                color:
-                Colors.grey.shade200,
 
+lastDate:
+DateTime(2030),
 
-                borderRadius:
-                BorderRadius.circular(15),
 
+initialDate:
+DateTime.now(),
 
-                border:
-                Border.all(
-                  color:
-                  Colors.grey.shade400,
-                ),
+);
 
-              ),
 
 
+if(date==null)
+return;
 
-              child:
-              Column(
 
-                mainAxisAlignment:
-                MainAxisAlignment.center,
 
+setState((){
 
-                children:[
 
+if(recepcion){
 
-                  Icon(
+fechaRecepcion=date;
 
-                    Icons.camera_alt,
+}
 
-                    size:60,
+else{
 
-                    color:
-                    Colors.grey,
+fechaVencimiento=date;
 
-                  ),
+}
 
 
+});
 
-                  const SizedBox(
-                    height:10,
-                  ),
 
+}
 
 
-                  const Text(
 
-                    "Sube una foto o activa la cámara",
 
-                    style:
-                    TextStyle(
-                      color:
-                      Colors.grey,
-                    ),
 
-                  )
 
+String formatDate(
+DateTime? date
+){
 
-                ],
 
-              ),
+if(date==null)
 
+return "dd/mm/aaaa";
 
-            ),
 
+return
+"${date.day}/${date.month}/${date.year}";
 
 
+}
 
 
-            const SizedBox(
-              height:15,
-            ),
 
 
 
 
+@override
+Widget build(BuildContext context){
 
-            SizedBox(
 
-              width:
-              double.infinity,
+return Scaffold(
 
 
-              child:
-              ElevatedButton.icon(
+appBar:
+AppBar(
 
+title:
+const Text(
+"Inventario YOLO"
+),
 
-                style:
-                ElevatedButton.styleFrom(
 
-                  backgroundColor:
-                  Colors.orange,
+backgroundColor:
+Colors.orange,
 
-                  padding:
-                  const EdgeInsets.all(15),
 
-                ),
+),
 
 
 
-                onPressed:(){},
 
+body:
+SingleChildScrollView(
 
-                icon:
-                const Icon(
-                  Icons.camera_alt,
-                  color:
-                  Colors.white,
-                ),
 
+padding:
+const EdgeInsets.all(16),
 
 
-                label:
-                const Text(
 
-                  "Activar cámara",
+child:
+Column(
 
-                  style:
-                  TextStyle(
-                    color:
-                    Colors.white,
-                  ),
 
-                ),
+crossAxisAlignment:
+CrossAxisAlignment.start,
 
 
-              ),
+children:[
 
-            ),
 
 
 
 
+TextField(
 
-            const SizedBox(
-              height:10,
-            ),
 
+controller:
+loteCtrl,
 
 
+decoration:
+const InputDecoration(
 
+labelText:
+"Lote",
 
-            SizedBox(
 
-              width:
-              double.infinity,
+border:
+OutlineInputBorder()
 
+),
 
-              child:
-              OutlinedButton.icon(
 
+),
 
-                onPressed:(){},
 
 
-                icon:
-                const Icon(
-                  Icons.upload,
-                ),
 
 
-                label:
-                const Text(
-                  "+ Subir foto",
-                ),
 
+const SizedBox(
+height:12
+),
 
-              ),
 
-            ),
 
 
 
 
 
-            const SizedBox(
-              height:25,
-            ),
+Row(
 
+children:[
 
 
+Expanded(
 
+child:
+InkWell(
 
+onTap:(){
 
-            const Text(
+selectDate(true);
 
-              "Productos detectados",
+},
 
-              style:
-              TextStyle(
 
-                fontSize:18,
 
-                fontWeight:
-                FontWeight.bold,
+child:
+InputDecorator(
 
-              ),
 
-            ),
+decoration:
+const InputDecoration(
 
+labelText:
+"Fecha recepción",
 
+border:
+OutlineInputBorder()
 
+),
 
 
-            const SizedBox(
-              height:10,
-            ),
 
+child:
+Text(
 
+formatDate(
+fechaRecepcion
+)
 
+),
 
 
-            // CARD PRODUCTO DETECTADO
+),
 
+)
 
-            Card(
 
-              elevation:2,
+),
 
 
-              shape:
-              RoundedRectangleBorder(
 
-                borderRadius:
-                BorderRadius.circular(15),
 
-              ),
+const SizedBox(
+width:10
+),
 
 
 
-              child:
-              Padding(
 
-                padding:
-                const EdgeInsets.all(15),
 
+Expanded(
 
-                child:
-                Column(
+child:
+InkWell(
 
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+onTap:(){
 
+selectDate(false);
 
-                  children:[
+},
 
 
-                    const Text(
 
-                      "Gaseosa 600ml",
+child:
+InputDecorator(
 
-                      style:
-                      TextStyle(
 
-                        fontSize:17,
+decoration:
+const InputDecoration(
 
-                        fontWeight:
-                        FontWeight.bold,
+labelText:
+"Fecha vencimiento",
 
-                      ),
+border:
+OutlineInputBorder()
 
-                    ),
+),
 
 
 
+child:
+Text(
 
-                    const SizedBox(
-                      height:10,
-                    ),
+formatDate(
+fechaVencimiento
+)
 
+),
 
 
-                    Text(
-                      "Stock actual: $stockActual",
-                    ),
 
+),
 
+)
 
-                    Text(
-                      "Cantidad detectada: $cantidadDetectada",
-                    ),
 
+),
 
 
+]
 
-                    const SizedBox(
-                      height:15,
-                    ),
+),
 
 
 
 
-                    Row(
 
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
 
 
-                      children:[
+const SizedBox(
+height:20
+),
 
 
-                        const Text(
-                          "Cantidad validada",
-                        ),
 
 
 
-                        Row(
 
-                          children:[
 
+Container(
 
-                            IconButton(
+height:230,
 
-                              onPressed:(){
 
-                                if(cantidadValidada>0){
+width:
+double.infinity,
 
-                                  setState((){
 
-                                    cantidadValidada--;
+decoration:
+BoxDecoration(
 
-                                  });
 
-                                }
+color:
+Colors.grey.shade200,
 
-                              },
 
-                              icon:
-                              const Icon(
-                                Icons.remove,
-                              ),
+borderRadius:
+BorderRadius.circular(15)
 
-                            ),
 
+),
 
 
 
-                            Text(
 
-                              "$cantidadValidada",
+child:
 
-                              style:
-                              const TextStyle(
 
-                                fontSize:18,
+streamUrl==null
 
-                                fontWeight:
-                                FontWeight.bold,
 
-                              ),
+?
 
-                            ),
 
+const Center(
 
+child:
+Text(
 
+"Sube una foto o activa la cámara"
 
-                            IconButton(
+)
 
-                              onPressed:(){
+)
 
-                                setState((){
 
-                                  cantidadValidada++;
 
-                                });
+:
 
-                              },
 
+EdgeCameraView(
 
-                              icon:
-                              const Icon(
-                                Icons.add,
-                              ),
+url:
+streamUrl!
 
-                            ),
+),
 
 
-                          ],
 
-                        )
+),
 
 
 
-                      ],
 
-                    ),
 
 
 
 
-                    const Divider(),
+const SizedBox(
+height:15
+),
 
 
 
 
-                    Align(
 
-                      alignment:
-                      Alignment.centerRight,
 
+SizedBox(
 
-                      child:
-                      Text(
+width:
+double.infinity,
 
-                        "Total: ${stockActual + cantidadValidada}",
 
+child:
+ElevatedButton.icon(
 
-                        style:
-                        const TextStyle(
 
-                          color:
-                          Colors.green,
+style:
+ElevatedButton.styleFrom(
 
-                          fontWeight:
-                          FontWeight.bold,
+backgroundColor:
+Colors.orange
 
-                          fontSize:18,
+),
 
-                        ),
 
-                      ),
 
-                    )
+onPressed:
 
+loading
+?
 
+null
 
-                  ],
+:
 
+activarCamara,
 
-                ),
 
 
-              ),
+icon:
+const Icon(
 
+Icons.camera_alt,
 
-            ),
+color:
+Colors.white
 
+),
 
 
 
+label:
+const Text(
 
+"Activar cámara",
 
-            const SizedBox(
-              height:20,
-            ),
+style:
+TextStyle(
 
+color:
+Colors.white
 
+)
 
+),
 
+),
 
-            SizedBox(
 
-              width:
-              double.infinity,
+),
 
 
-              child:
-              ElevatedButton(
 
-                style:
-                ElevatedButton.styleFrom(
 
-                  backgroundColor:
-                  Colors.green,
 
-                  padding:
-                  const EdgeInsets.all(15),
 
-                ),
+const SizedBox(
+height:10
+),
 
 
-                onPressed:(){},
 
 
-                child:
-                const Text(
 
-                  "GUARDAR",
 
-                  style:
-                  TextStyle(
+SizedBox(
 
-                    color:
-                    Colors.white,
+width:
+double.infinity,
 
-                    fontWeight:
-                    FontWeight.bold,
 
-                  ),
+child:
+OutlinedButton.icon(
 
-                ),
 
-              ),
 
-            )
+onPressed:
 
+detectando
+?
 
+null
 
+:
 
+subirImagen,
 
-          ],
 
 
-        ),
+icon:
 
+detectando
 
-      ),
+?
 
+const SizedBox(
 
+width:18,
 
-    );
+height:18,
 
+child:
+CircularProgressIndicator(
 
-  }
+strokeWidth:2
+
+)
+
+)
+
+
+:
+
+const Icon(
+Icons.upload
+),
+
+
+
+label:
+
+Text(
+
+detectando
+
+?
+
+"Detectando..."
+
+:
+
+"+ Subir foto"
+
+),
+
+
+),
+
+
+),
+
+
+
+
+
+
+
+const SizedBox(
+height:25
+),
+
+
+
+
+
+
+const Text(
+
+"Productos detectados",
+
+
+style:
+TextStyle(
+
+fontSize:18,
+
+fontWeight:
+FontWeight.bold
+
+),
+
+),
+
+
+
+
+
+
+
+const SizedBox(
+height:10
+),
+
+
+
+
+
+
+Card(
+
+child:
+Padding(
+
+
+padding:
+const EdgeInsets.all(12),
+
+
+
+child:
+Column(
+
+
+crossAxisAlignment:
+CrossAxisAlignment.start,
+
+
+children:[
+
+
+
+
+const Text(
+
+"Producto por validar",
+
+style:
+TextStyle(
+
+fontSize:16,
+
+fontWeight:
+FontWeight.bold
+
+),
+
+),
+
+
+
+
+const SizedBox(
+height:8
+),
+
+
+
+
+
+Text(
+
+"Cantidad detectada: $cantidadDetectada"
+
+),
+
+
+
+
+
+const SizedBox(
+height:12
+),
+
+
+
+
+
+
+Wrap(
+
+alignment:
+WrapAlignment.center,
+
+
+children:[
+
+
+IconButton(
+
+icon:
+const Icon(
+Icons.remove
+),
+
+
+onPressed:
+
+(){
+
+if(cantidadValidada > 0){
+
+setState((){
+
+cantidadValidada--;
+
+});
+
+}
+
+},
+
+),
+
+
+
+
+
+Padding(
+
+padding:
+const EdgeInsets.symmetric(
+horizontal:12
+),
+
+
+child:
+Text(
+
+"$cantidadValidada",
+
+style:
+const TextStyle(
+
+fontSize:18,
+
+fontWeight:
+FontWeight.bold
+
+),
+
+),
+
+),
+
+
+
+
+
+IconButton(
+
+icon:
+const Icon(
+Icons.add
+),
+
+
+onPressed:
+
+(){
+
+setState((){
+
+cantidadValidada++;
+
+});
+
+},
+
+),
+
+
+
+],
+
+)
+
+
+
+]
+
+),
+
+
+)
+
+
+),
+
+
+
+
+
+
+
+const SizedBox(
+height:20
+),
+
+
+
+
+
+
+
+
+SizedBox(
+
+width:
+double.infinity,
+
+
+child:
+ElevatedButton(
+
+
+style:
+ElevatedButton.styleFrom(
+
+backgroundColor:
+Colors.green
+
+),
+
+
+
+onPressed:
+(){
+
+
+print(
+"Lote: ${loteCtrl.text}"
+);
+
+
+print(
+"Cantidad validada: $cantidadValidada"
+);
+
+
+
+},
+
+
+
+child:
+const Text(
+
+"GUARDAR",
+
+style:
+TextStyle(
+
+color:
+Colors.white
+
+)
+
+),
+
+),
+
+
+)
+
+
+
+
+
+],
+
+
+),
+
+
+),
+
+
+);
+
+
+
+}
+
 
 
 }
