@@ -1,14 +1,15 @@
-
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../../data/services/yolo_service.dart';
+import '../../data/services/product_service.dart';
+import '../../data/models/product_model.dart';
 import '../widgets/edge_camera_view.dart';
-
-
+import '../../data/services/inventory_service.dart';
+import '../../data/services/inventory_detection_service.dart';
 
 class YoloInventoryPage extends StatefulWidget {
+
 
   const YoloInventoryPage({
     super.key
@@ -20,6 +21,8 @@ class YoloInventoryPage extends StatefulWidget {
       => _YoloInventoryPageState();
 
 }
+
+
 
 
 
@@ -39,22 +42,53 @@ final YoloService service =
 YoloService();
 
 
+
+final ProductService productService =
+ProductService();
+
+final InventoryDetectionService inventoryDetectionService =
+    InventoryDetectionService();
+
 String? streamUrl;
+
+
 
 XFile? imagenSeleccionada;
 
+
 Uint8List? imagenBytes;
+
+
 
 bool loading=false;
 
+
 bool detectando=false;
 
+
+
+
 int cantidadDetectada=0;
+
 
 int cantidadValidada=0;
 
 
+
+List<Product> productos=[];
+
+
+
+Product? productoSeleccionado;
+
+
+
+int stockActual=0;
+
+
+
 DateTime? fechaRecepcion;
+
 
 DateTime? fechaVencimiento;
 
@@ -62,9 +96,131 @@ DateTime? fechaVencimiento;
 
 
 
+
+@override
+void initState(){
+
+super.initState();
+
+cargarProductos();
+
+}
+
+
+
+
+
+
+
 // ==========================
-// ACTIVAR CAMARA EDGE
+// PRODUCTOS
 // ==========================
+
+
+Future<void> cargarProductos() async{
+
+
+try{
+
+
+final data =
+await productService.getProducts();
+
+
+
+if(!mounted)
+return;
+
+
+
+setState((){
+
+
+productos=data;
+
+
+
+if(productos.isNotEmpty){
+
+productoSeleccionado =
+productos.first;
+
+}
+
+
+});
+
+
+
+if(productoSeleccionado!=null){
+
+await cargarStock(
+productoSeleccionado!.id
+);
+
+}
+
+
+
+}catch(e){
+
+print(
+"Error productos $e"
+);
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+Future<void> cargarStock(
+int productId
+) async{
+
+
+final stock =
+await productService
+.getProductStock(productId);
+
+
+
+if(!mounted)
+return;
+
+
+
+setState((){
+
+
+stockActual=stock;
+
+
+
+});
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// ==========================
+// CAMARA EDGE
+// ==========================
+
 
 Future<void> activarCamara() async{
 
@@ -92,19 +248,19 @@ return;
 
 setState((){
 
+
 streamUrl=url;
 
+
 loading=false;
+
+
 
 });
 
 
 
 }catch(e){
-
-
-if(!mounted)
-return;
 
 
 
@@ -131,11 +287,14 @@ Text(
 );
 
 
+
+}
+
+
 }
 
 
 
-}
 
 
 
@@ -143,40 +302,58 @@ Text(
 
 
 // ==========================
-// SUBIR IMAGEN
+// DETECCION IMAGEN
 // ==========================
+
 
 Future<void> subirImagen() async{
 
-final picker = ImagePicker();
+
+final picker =
+ImagePicker();
+
 
 
 final image =
 await picker.pickImage(
-source: ImageSource.gallery
+
+source:
+ImageSource.gallery
+
 );
+
 
 
 if(image==null)
 return;
 
 
+
+
 final bytes =
 await image.readAsBytes();
 
 
+
 setState((){
 
-imagenSeleccionada = image;
 
-imagenBytes = bytes;
+imagenSeleccionada=image;
+
+
+imagenBytes=bytes;
+
 
 detectando=true;
+
 
 });
 
 
+
+
 try{
+
 
 
 final result =
@@ -216,11 +393,9 @@ detectando=false;
 
 
 
+
+
 }catch(e){
-
-
-if(!mounted)
-return;
 
 
 
@@ -251,8 +426,8 @@ Text(
 }
 
 
-}
 
+}
 
 
 
@@ -262,6 +437,7 @@ Text(
 // ==========================
 // FECHAS
 // ==========================
+
 
 Future<void> selectDate(
 bool recepcion
@@ -319,28 +495,21 @@ fechaVencimiento=date;
 
 
 
+String formatDate(DateTime? date){
 
-String formatDate(
-DateTime? date
-){
+if(date==null){
 
-
-if(date==null)
-
-return "dd/mm/aaaa";
-
-
-return
-"${date.day}/${date.month}/${date.year}";
-
+return "";
 
 }
 
 
+return
+"${date.year}-"
+"${date.month.toString().padLeft(2,'0')}-"
+"${date.day.toString().padLeft(2,'0')}";
 
-
-
-
+}
 @override
 Widget build(BuildContext context){
 
@@ -360,8 +529,8 @@ const Text(
 backgroundColor:
 Colors.orange,
 
-
 ),
+
 
 
 
@@ -389,6 +558,7 @@ children:[
 
 
 
+
 TextField(
 
 
@@ -401,7 +571,6 @@ const InputDecoration(
 
 labelText:
 "Lote",
-
 
 border:
 OutlineInputBorder()
@@ -416,10 +585,10 @@ OutlineInputBorder()
 
 
 
+
 const SizedBox(
 height:12
 ),
-
 
 
 
@@ -441,7 +610,6 @@ onTap:(){
 selectDate(true);
 
 },
-
 
 
 child:
@@ -473,10 +641,11 @@ fechaRecepcion
 
 ),
 
+
 )
 
-
 ),
+
 
 
 
@@ -494,12 +663,12 @@ Expanded(
 child:
 InkWell(
 
+
 onTap:(){
 
 selectDate(false);
 
 },
-
 
 
 child:
@@ -532,13 +701,14 @@ fechaVencimiento
 
 ),
 
-)
 
+)
 
 ),
 
 
 ]
+
 
 ),
 
@@ -558,7 +728,14 @@ height:20
 
 
 
+
+// ==========================
+// VIDEO / IMAGEN
+// ==========================
+
+
 Container(
+
 
 height:230,
 
@@ -586,18 +763,30 @@ BorderRadius.circular(15)
 
 child:
 
+
+
 streamUrl != null
+
+
 
 ?
 
 EdgeCameraView(
-url: streamUrl!
+
+url:
+streamUrl!
+
 )
+
 
 
 :
 
-imagenSeleccionada != null
+
+
+imagenBytes != null
+
+
 
 ?
 
@@ -606,17 +795,21 @@ ClipRRect(
 borderRadius:
 BorderRadius.circular(15),
 
+
 child:
 
 Image.memory(
 
 imagenBytes!,
 
+
 width:
 double.infinity,
 
+
 height:
 230,
+
 
 fit:
 BoxFit.cover,
@@ -626,7 +819,10 @@ BoxFit.cover,
 )
 
 
+
+
 :
+
 
 const Center(
 
@@ -640,8 +836,8 @@ Text(
 ),
 
 
-),
 
+),
 
 
 
@@ -656,6 +852,12 @@ height:15
 
 
 
+
+
+
+
+
+// CAMARA
 
 
 SizedBox(
@@ -682,11 +884,8 @@ onPressed:
 
 loading
 ?
-
 null
-
 :
-
 activarCamara,
 
 
@@ -718,10 +917,12 @@ Colors.white
 
 ),
 
+
 ),
 
 
 ),
+
 
 
 
@@ -737,6 +938,12 @@ height:10
 
 
 
+
+
+
+// SUBIR FOTO
+
+
 SizedBox(
 
 width:
@@ -747,16 +954,12 @@ child:
 OutlinedButton.icon(
 
 
-
 onPressed:
 
 detectando
 ?
-
 null
-
 :
-
 subirImagen,
 
 
@@ -781,6 +984,7 @@ strokeWidth:2
 )
 
 )
+
 
 
 :
@@ -828,10 +1032,12 @@ height:25
 
 
 
+
+
+
 const Text(
 
-"Productos detectados",
-
+"Items por validar",
 
 style:
 TextStyle(
@@ -860,6 +1066,12 @@ height:10
 
 
 
+
+// ==========================
+// CARD INVENTARIO
+// ==========================
+
+
 Card(
 
 child:
@@ -884,21 +1096,22 @@ children:[
 
 
 
+
 const Text(
 
-"Producto por validar",
+"Producto",
 
 style:
 TextStyle(
 
-fontSize:16,
-
 fontWeight:
 FontWeight.bold
 
-),
+)
 
 ),
+
+
 
 
 
@@ -911,18 +1124,138 @@ height:8
 
 
 
+
+
+
+DropdownButton<Product>(
+
+
+isExpanded:true,
+
+
+value:
+productoSeleccionado,
+
+
+
+items:
+
+productos.map((producto){
+
+
+return DropdownMenuItem<Product>(
+
+
+value:
+producto,
+
+
+child:
 Text(
 
-"Cantidad detectada: $cantidadDetectada"
+producto.name
 
 ),
+
+
+);
+
+
+}).toList(),
+
+
+
+
+
+onChanged:(producto) async{
+
+
+if(producto==null)
+return;
+
+
+
+setState((){
+
+
+productoSeleccionado =
+producto;
+
+
+});
+
+
+
+await cargarStock(
+
+producto.id
+
+);
+
+
+
+},
+
+
+
+),
+
+
+
+
+
+
+
+const Divider(),
+
+
+
+
+
+
+
+Row(
+
+mainAxisAlignment:
+MainAxisAlignment.spaceBetween,
+
+
+children:[
+
+
+const Text(
+"Stock actual"
+),
+
+
+Text(
+
+"$stockActual",
+
+style:
+const TextStyle(
+
+fontWeight:
+FontWeight.bold
+
+)
+
+)
+
+
+],
+
+
+),
+
+
 
 
 
 
 
 const SizedBox(
-height:12
+height:8
 ),
 
 
@@ -930,13 +1263,85 @@ height:12
 
 
 
-Wrap(
+Row(
 
-alignment:
-WrapAlignment.center,
+mainAxisAlignment:
+MainAxisAlignment.spaceBetween,
 
 
 children:[
+
+
+const Text(
+"Cant. detectada"
+),
+
+
+
+Text(
+
+"$cantidadDetectada",
+
+style:
+const TextStyle(
+
+color:
+Colors.orange,
+
+fontWeight:
+FontWeight.bold
+
+)
+
+)
+
+
+
+],
+
+
+),
+
+
+
+
+
+
+
+const SizedBox(
+height:8
+),
+
+
+
+
+
+
+
+
+
+Row(
+
+mainAxisAlignment:
+MainAxisAlignment.spaceBetween,
+
+
+children:[
+
+
+const Text(
+"Cant. validada"
+),
+
+
+
+
+
+
+Row(
+
+children:[
+
 
 
 IconButton(
@@ -947,11 +1352,12 @@ Icons.remove
 ),
 
 
-onPressed:
 
+onPressed:
 (){
 
-if(cantidadValidada > 0){
+if(cantidadValidada>0){
+
 
 setState((){
 
@@ -959,25 +1365,21 @@ cantidadValidada--;
 
 });
 
+
 }
+
 
 },
 
+
+
 ),
 
 
 
 
 
-Padding(
 
-padding:
-const EdgeInsets.symmetric(
-horizontal:12
-),
-
-
-child:
 Text(
 
 "$cantidadValidada",
@@ -990,11 +1392,10 @@ fontSize:18,
 fontWeight:
 FontWeight.bold
 
-),
+)
 
 ),
 
-),
 
 
 
@@ -1008,34 +1409,121 @@ Icons.add
 ),
 
 
-onPressed:
 
+onPressed:
 (){
+
 
 setState((){
 
+
 cantidadValidada++;
+
 
 });
 
+
 },
+
+
 
 ),
 
-
-
-],
-
-)
 
 
 
 ]
 
+)
+
+
+
+],
+
+
 ),
 
 
+
+
+
+
+
+
+const Divider(),
+
+
+
+
+
+
+
+
+
+Row(
+
+mainAxisAlignment:
+MainAxisAlignment.spaceBetween,
+
+
+children:[
+
+
+const Text(
+
+"TOTAL",
+
+style:
+TextStyle(
+
+fontWeight:
+FontWeight.bold
+
 )
+
+),
+
+
+
+
+Text(
+
+"${stockActual + cantidadValidada}",
+
+
+style:
+const TextStyle(
+
+color:
+Colors.green,
+
+fontSize:18,
+
+fontWeight:
+FontWeight.bold
+
+)
+
+)
+
+
+
+],
+
+
+)
+
+
+
+
+
+],
+
+
+)
+
+
+),
 
 
 ),
@@ -1057,6 +1545,10 @@ height:20
 
 
 
+
+// GUARDAR
+
+
 SizedBox(
 
 width:
@@ -1065,6 +1557,7 @@ double.infinity,
 
 child:
 ElevatedButton(
+
 
 
 style:
@@ -1077,22 +1570,131 @@ Colors.green
 
 
 
+
+
 onPressed:
-(){
+() async {
+if(imagenSeleccionada == null){
+
+ScaffoldMessenger.of(context)
+.showSnackBar(
+
+const SnackBar(
+
+content:
+Text(
+"Debe subir una imagen"
+)
+
+)
+
+);
+
+return;
+
+}
 
 
-print(
-"Lote: ${loteCtrl.text}"
+
+if(productoSeleccionado == null){
+
+ScaffoldMessenger.of(context)
+.showSnackBar(
+
+const SnackBar(
+
+content:
+Text(
+"Seleccione un producto"
+)
+
+)
+
+);
+
+return;
+
+}
+
+try{
+
+await inventoryDetectionService.registrarDeteccion(
+
+lote:
+loteCtrl.text,
+
+
+receptionDate:
+formatDate(fechaRecepcion),
+
+
+expirationDate:
+formatDate(fechaVencimiento),
+
+
+productId:
+productoSeleccionado!.id,
+
+
+detectedQuantity:
+cantidadDetectada,
+
+
+verifiedQuantity:
+cantidadValidada,
+
+
+image:
+imagenSeleccionada!,
+
+
 );
 
 
-print(
-"Cantidad validada: $cantidadValidada"
+
+ScaffoldMessenger.of(context)
+.showSnackBar(
+
+const SnackBar(
+
+content:
+Text(
+"Inventario registrado correctamente"
+)
+
+)
+
 );
+
+
+
+}catch(e){
+
+
+
+ScaffoldMessenger.of(context)
+.showSnackBar(
+
+SnackBar(
+
+content:
+Text(
+"Error guardando: $e"
+)
+
+)
+
+);
+
+
+
+}
 
 
 
 },
+
+
 
 
 
@@ -1110,6 +1712,7 @@ Colors.white
 )
 
 ),
+
 
 ),
 
@@ -1130,7 +1733,6 @@ Colors.white
 
 
 );
-
 
 
 }
